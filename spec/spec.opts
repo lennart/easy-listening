@@ -1,0 +1,5 @@
+--colour
+-b
+--format nested
+--reverse
+--loadby mtime
