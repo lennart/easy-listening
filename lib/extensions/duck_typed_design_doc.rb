@@ -14,11 +14,18 @@ module DuckTypedDesignDoc
     include CouchRest::Mixins::DesignDoc::ClassMethods
 
     def ducktype_traits(*traits)
+      potential_options = traits.pop
+      @exceptions = if potential_options.kind_of?(Hash)
+                      potential_options[:except].map {|t| t.to_sym }
+                    else
+                      traits << potential_options
+                      []
+                    end
       @traits = traits.map { |t| t.to_sym }
     end
 
     def ducktype_traits_js(other_traits = [])
-      (other_traits + @traits).map {|t| "doc['#{t.to_s}']"}.join " && "
+      ((other_traits + @traits).map {|t| "doc['#{t.to_s}']"} + @exceptions.map {|e| "!doc['#{e.to_s}']"}).join " && "
     end
 
     def view_by(*keys)
@@ -39,16 +46,16 @@ module DuckTypedDesignDoc
         {
           "language" => "javascript",
           "views" => {
-            'all' => {
-              'map' => <<-MAP
+          'all' => {
+          'map' => <<-MAP
 function(doc) {
   if (#{ducktype_traits_js}) {
     emit(doc['_id'],1);
   }
 }
-              MAP
-            }
-          }
+          MAP
+        }
+        }
         }
 
       else
